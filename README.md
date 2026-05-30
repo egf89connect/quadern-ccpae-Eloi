@@ -2,8 +2,14 @@
 <html lang="ca">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Quadern-Eloi">
+<meta name="theme-color" content="#2d5016">
 <title>Quadern de Camp-Eloi</title>
+<link rel="manifest" href="manifest.json">
 <style>
 :root{--earth:#3d2b1f;--soil:#6b4226;--clay:#a0633a;--sand:#d4a574;--wheat:#f0d9b5;--cream:#faf6f0;--vine:#2d5016;--leaf:#4a7c25;--grape:#6b2d6b;--danger:#c0392b;--warn:#e67e22;}
 *{box-sizing:border-box;margin:0;padding:0;}
