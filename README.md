@@ -1,1 +1,0 @@
-# Quadern de Camp-Eloi
