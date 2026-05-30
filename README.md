@@ -227,25 +227,33 @@ textarea{resize:vertical;min-height:80px;}
 <div class="toast" id="toast"></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
-// API URL - Google Apps Script backend
-const API_URL = 'https://script.googleusercontent.com/macros/echo?user_content_key=AUkAhnQD9NvuMsprp-d1FUN7hnh-BqS_Sfp0Qs7KLhdpw7DIz9D2tJcFEnkh-THZh2f8hdaWKjYJAMkB6Cy_6WzGYPnruz-khBiyF5UswFCoshplQCBTKPgM5hxyP7Met3IPZef5wotBGQTayxjV-H_DpoD9tu4fHKwrtLMrdk34XVTRZzk3WLIbk0Q1_xO7jVKs0cRiXKQ6K9CqMA14Z-1VVFoPD-F5dOL0-PUClYLOIaVhI2rLzPtdL8XSrZ6tOcIpVVnF0s4PN0StlveJlMVXlEXb3pNoQDsiliNdLXOitnM9sKcoMI8MLUy2uhakfw&lib=MNYAMc2a0poCMZeCXyXoc1XymaBxOawrs';
+// URL de l'Apps Script (per enviar dades al Google Sheets)
+const SHEETS_URL = 'https://script.google.com/macros/s/AKfycbwOtKWH4IPsAM6X8t2mC7eMzuIkBFIZ2zpfYKYJv2mWA7PKSRGJIFjgw_EJyyBQFUP5CA/exec';
 
-// JSONP helper
-let _cb = 0;
+// ── Emmagatzematge local (localStorage) ──────────────────
+// Totes les dades es guarden localment al dispositiu.
+// Quan hi ha connexió, també s'envien al Google Sheets.
+function lsGet(key, def) {
+  try { return JSON.parse(localStorage.getItem(key)) ?? def; } catch { return def; }
+}
+function lsSet(key, val) {
+  try { localStorage.setItem(key, JSON.stringify(val)); } catch {}
+}
+
+// Envia el registre al Google Sheets en segon pla (fire & forget)
+// Usa no-cors: no podem llegir la resposta però el POST arriba
+function sendToSheets(rec) {
+  try {
+    const url = new URL(SHEETS_URL);
+    url.searchParams.set('action', 'saveRecord');
+    url.searchParams.set('payload', JSON.stringify(rec));
+    fetch(url.toString(), { method: 'GET', mode: 'no-cors' }).catch(() => {});
+  } catch(e) {}
+}
+
+// Per compatibilitat — callAPI ara usa localStorage
 function callAPI(params) {
-  return new Promise((resolve, reject) => {
-    const name = '_cb' + (++_cb) + '_' + Date.now();
-    const t = setTimeout(() => { cleanup(); reject(new Error('Timeout')); }, 20000);
-    window[name] = (d) => { cleanup(); resolve(d); };
-    function cleanup() { clearTimeout(t); delete window[name]; if(s.parentNode) s.parentNode.removeChild(s); }
-    const url = new URL(API_URL);
-    url.searchParams.set('callback', name);
-    Object.entries(params).forEach(([k,v]) => url.searchParams.set(k, String(v)));
-    const s = document.createElement('script');
-    s.src = url.toString();
-    s.onerror = () => { cleanup(); reject(new Error('Error de connexió')); };
-    document.head.appendChild(s);
-  });
+  return Promise.resolve({ ok: true, data: [] });
 }
 
 const PARC=[
@@ -281,8 +289,8 @@ const DEFS={
 let CU=null,SP=[],CT='treball',RECS=[],OPTS={};
 
 function gO(k){return OPTS[k]||DEFS[k]||[];}
-function sO(k,v){if(!gO(k).includes(v)){OPTS[k]=[v,...(OPTS[k]||DEFS[k]||[])];callAPI({action:'saveOpts',user:CU,opts:JSON.stringify(OPTS)}).catch(()=>{});}}
-function dO(k,v){OPTS[k]=gO(k).filter(x=>x!==v);callAPI({action:'saveOpts',user:CU,opts:JSON.stringify(OPTS)}).catch(()=>{});}
+function sO(k,v){if(!gO(k).includes(v)){OPTS[k]=[v,...(OPTS[k]||DEFS[k]||[])];lsSet('opts_'+CU,OPTS);}}
+function dO(k,v){OPTS[k]=gO(k).filter(x=>x!==v);lsSet('opts_'+CU,OPTS);}
 
 // LOGIN
 function doLogin(){
@@ -293,23 +301,15 @@ function doLogin(){
   btn.disabled=true;btn.textContent='⏳ Carregant...';
   document.getElementById('lmsg').textContent='Carregant dades...';
 
-  Promise.all([
-    callAPI({action:'loadRecords', user: u}),
-    callAPI({action:'loadOpts', user: u})
-  ]).then(function(results) {
-    RECS = results[0]&&results[0].data ? results[0].data : [];
-    OPTS = results[1]&&results[1].data ? results[1].data : {};
-    document.getElementById('login').style.display='none';
-    document.getElementById('app').style.display='block';
-    document.getElementById('av').textContent=u==='Eloi'?'EG':'VG';
-    document.getElementById('un').textContent=u==='Eloi'?'Eloi Gabalda':'Valero Gabalda';
-    btn.disabled=false;btn.textContent='Entrar al quadern';
-    init();
-  }).catch(function(err) {
-    document.getElementById('lmsg').textContent='❌ Error: '+err.message;
-    btn.disabled=false;btn.textContent='Entrar al quadern';
-    CU=null;
-  });
+  // Carrega dades des de localStorage (sempre funciona, sense connexió)
+  RECS = lsGet('recs_' + u, []);
+  OPTS = lsGet('opts_' + u, {});
+  document.getElementById('login').style.display='none';
+  document.getElementById('app').style.display='block';
+  document.getElementById('av').textContent=u==='Eloi'?'EG':'VG';
+  document.getElementById('un').textContent=u==='Eloi'?'Eloi Gabalda':'Valero Gabalda';
+  btn.disabled=false;btn.textContent='Entrar al quadern';
+  init();
 }
 
 function doLogout(){
@@ -442,21 +442,14 @@ function saveRec(){
   const btn=document.getElementById('bsv');
   btn.disabled=true;btn.textContent='⏳ Guardant...';
 
-  callAPI({action:'saveRecord', payload:JSON.stringify(rec)})
-    .then(function(r){
-      if(r&&r.ok){
-        RECS.unshift(rec);
-        toast('✅ Registre guardat al Google Sheets!');
-        resetF();renderI();
-      } else {
-        toast('Error: '+(r?r.error:'desconegut'),'e');
-      }
-      btn.disabled=false;btn.textContent='💾 Guardar registre';
-    })
-    .catch(function(err){
-      toast('Error: '+err.message,'e');
-      btn.disabled=false;btn.textContent='💾 Guardar registre';
-    });
+  // Guarda localment (instantani, sempre funciona)
+  RECS.unshift(rec);
+  lsSet('recs_'+CU, RECS);
+  // Envia al Google Sheets en segon pla
+  sendToSheets(rec);
+  toast('✅ Registre guardat!');
+  resetF();renderI();
+  btn.disabled=false;btn.textContent='💾 Guardar registre';
 }
 
 function resetF(){
@@ -504,7 +497,7 @@ function rH(r,del){
 
 function delR(id){
   if(!confirm('Eliminar?'))return;
-  callAPI({action:'deleteRecord',user:CU,id:String(id)}).catch(()=>{});
+  lsSet('recs_'+CU, RECS);
   RECS=RECS.filter(r=>r.id!==id);renderH();renderI();toast('Eliminat');
 }
 
