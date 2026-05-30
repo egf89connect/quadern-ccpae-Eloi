@@ -228,7 +228,7 @@ textarea{resize:vertical;min-height:80px;}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
 // API URL - Google Apps Script backend
-const API_URL = 'https://script.google.com/macros/s/AKfycbwOtKWH4IPsAM6X8t2mC7eMzuIkBFIZ2zpfYKYJv2mWA7PKSRGJIFjgw_EJyyBQFUP5CA/exec';
+const API_URL = 'https://script.googleusercontent.com/macros/echo?user_content_key=AUkAhnQD9NvuMsprp-d1FUN7hnh-BqS_Sfp0Qs7KLhdpw7DIz9D2tJcFEnkh-THZh2f8hdaWKjYJAMkB6Cy_6WzGYPnruz-khBiyF5UswFCoshplQCBTKPgM5hxyP7Met3IPZef5wotBGQTayxjV-H_DpoD9tu4fHKwrtLMrdk34XVTRZzk3WLIbk0Q1_xO7jVKs0cRiXKQ6K9CqMA14Z-1VVFoPD-F5dOL0-PUClYLOIaVhI2rLzPtdL8XSrZ6tOcIpVVnF0s4PN0StlveJlMVXlEXb3pNoQDsiliNdLXOitnM9sKcoMI8MLUy2uhakfw&lib=MNYAMc2a0poCMZeCXyXoc1XymaBxOawrs';
 
 // JSONP helper
 let _cb = 0;
